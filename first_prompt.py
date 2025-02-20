@@ -1,9 +1,8 @@
-from langchain_openai import ChatOpenAI  # pip install -U langchain_openai
-
+from langchain_openai import ChatOpenAI  
 llm = ChatOpenAI(
     model="gpt-4o-mini",
     base_url="https://api.avalai.ir/v1",
-    api_key="aa-Z0DGD0GsA8Y59MHb92ZUKfSPwWRpBUrfObPOX8t83VeYX0vA"  # Replace with your actual API key
+    api_key="aa-Z0DGD0GsA8Y59MHb92ZUKfSPwWRpBUrfObPOX8t83VeYX0vA" 
 )
 
 # Get topic input from the user for examlpe music or astronomy or llm or blah blah blah :)))
@@ -16,7 +15,5 @@ messages = [
 
 # Get the AI-generated article
 response = llm.invoke(messages)
-
-# Print only the article output
 print("\nGenerated Article:\n")
 print(response.content)
