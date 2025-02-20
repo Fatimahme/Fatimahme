@@ -2,9 +2,7 @@
 - 👀 I’m interested in Data Enineering
 - 🌱 I’m currently learning AI developing and prompt engineering.
 - 💞️ I’m looking to collaborate on a real AI project
-- 📫 How to reach me ...
-- 😄 Pronouns: ...
-- ⚡ Fun fact: ...
+
 
 <!---
 Fatimahme/Fatimahme is a ✨ special ✨ repository because its `README.md` (this file) appears on your GitHub profile.
