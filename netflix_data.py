@@ -72,26 +72,44 @@ plt.subplots_adjust(hspace=0.9)
 plt.tight_layout()
 plt.show()
 
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+# Assuming 'df' is your original DataFrame
+
 # First, we ensure that 'Current Subscription Status' is encoded correctly
 df_encoded = df.copy()
 
-# Label encode 'Current Subscription Status'
+# Label encode 'Current Subscription Status' (Premium=1, Free=0)
 df_encoded['Subscription_Status_Numeric'] = df_encoded['Current Subscription Status'].apply(lambda x: 1 if x == "Premium" else 0)
 
-# One-hot encode categorical columns like 'Country' and 'Primary Device'
-df_encoded = pd.get_dummies(df_encoded, columns=['Country', 'Primary Device'], drop_first=True)
+# One-hot encode 'Country' and 'Favorite Genre' columns
+df_encoded = pd.get_dummies(df_encoded, columns=['Country', 'Favorite Genre'], drop_first=True)
 
-#Remove 'User ID' column since it's just an identifier and doesn't contribute to correlation
+# Label encode 'Age Group' (we will assign each group a unique number)
+age_group_mapping = {
+    '18-24': 1,
+    '25-34': 2,
+    '35-44': 3,
+    '45-54': 4,
+    '55-64': 5,
+    '65+': 6
+}
+df_encoded['Age_Group_Numeric'] = df_encoded['Age Group'].map(age_group_mapping)
+
+# Now, let's remove 'User ID' since it's just an identifier and doesn't contribute to correlation
 df_encoded = df_encoded.drop(columns=['User ID'])
-# Now, let's filter only numeric columns for correlation
+
+# Select only numeric columns for correlation
 df_numeric = df_encoded.select_dtypes(include=['number'])
 
-# Calculate correlation matrix
+# Calculate the correlation matrix
 correlation_matrix = df_numeric.corr()
 
 # Plot heatmap
 plt.figure(figsize=(12, 8))
 sns.heatmap(correlation_matrix, annot=True, cmap="coolwarm", fmt=".2f")
-plt.title("Correlation Matrix")
+plt.title("Correlation Matrix with Encoded Variables")
 plt.show()
 
