@@ -98,4 +98,5 @@ plt.figure(figsize=(12, 8))
 sns.heatmap(correlation_matrix, annot=True, cmap="coolwarm", fmt=".2f")
 plt.title("Correlation Matrix with Encoded Variables")
 plt.show()
-
+#when we look at the correlation matrix we understand that there is a High Positive Correlation between Total Watch Time (0.94) and Number of Videos Watched this makes sense, as users who watch more videos tend to have higher watch time.
+#And we can see Subscription Numeris Status that is important for us has Moderate Correlations with Net promete score and a Weak Correlation with Social Shares,number of customer support, total watch and number of watches !
