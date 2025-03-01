@@ -84,20 +84,6 @@ df_encoded = df.copy()
 # Label encode 'Current Subscription Status' (Premium=1, Free=0)
 df_encoded['Subscription_Status_Numeric'] = df_encoded['Current Subscription Status'].apply(lambda x: 1 if x == "Premium" else 0)
 
-# One-hot encode 'Country' and 'Favorite Genre' columns
-df_encoded = pd.get_dummies(df_encoded, columns=['Country', 'Favorite Genre'], drop_first=True)
-
-# Label encode 'Age Group' (we will assign each group a unique number)
-age_group_mapping = {
-    '18-24': 1,
-    '25-34': 2,
-    '35-44': 3,
-    '45-54': 4,
-    '55-64': 5,
-    '65+': 6
-}
-df_encoded['Age_Group_Numeric'] = df_encoded['Age Group'].map(age_group_mapping)
-
 # Now, let's remove 'User ID' since it's just an identifier and doesn't contribute to correlation
 df_encoded = df_encoded.drop(columns=['User ID'])
 
