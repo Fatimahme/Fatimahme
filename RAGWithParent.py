@@ -1,4 +1,4 @@
-!pip install PyPDF2
+
 import os
 import pickle
 from datetime import datetime
@@ -56,24 +56,26 @@ def process_txt_files(txt_directory, metadata_path, chunk_size=500, chunk_overla
     return txt_documents
 
 # Updated Step: Use ParentDocumentRetriever with stored documents
+# Updated Step: Use storage and retrieval for retriever
 def store_and_retrieve_with_parent_retriever(txt_documents, retriever_path):
     from langchain.vectorstores import FAISS
     from langchain.retrievers import ParentDocumentRetriever
     from langchain.embeddings import HuggingFaceEmbeddings
-    
+
     # Initialize embeddings
     embeddings = HuggingFaceEmbeddings()
     
-    # Save documents into FAISS index
-    if os.path.exists(retriever_path):
-        vectorstore = FAISS.load_local(retriever_path, embeddings)
-    else:
+    # Try to load retriever if it exists
+    retriever = load_retriever(retriever_path, embeddings)
+    
+    if retriever is None:
+        # Create a new retriever if it doesn't exist
         vectorstore = FAISS.from_documents(txt_documents, embeddings)
-    
-    vectorstore.save_local(retriever_path)
-    
-    # Wrap vectorstore with ParentDocumentRetriever
-    retriever = ParentDocumentRetriever(vectorstore=vectorstore)
+        vectorstore.save_local(retriever_path)
+        retriever = ParentDocumentRetriever(vectorstore=vectorstore)
+    else:
+        print("Loaded existing retriever from disk.")
+
     return retriever
 
 
@@ -88,11 +90,6 @@ def main():
     if txt_documents:
         print(f"Processed {len(txt_documents)} chunks from new documents.")
         
-        print("Storing documents and initializing ParentDocumentRetriever...")
-        retriever = store_and_retrieve_with_parent_retriever(txt_documents, retriever_path)
-        print("ParentDocumentRetriever is ready to handle queries!")
-    else:
-        print("No new files to process.")
-
-if __name__ == "__main__":
-    main()
+    print("Storing documents and initializing ParentDocumentRetriever...")
+    retriever = store_and_retrieve_with_parent_retriever(txt_documents, retriever_path)
+    print("ParentDocumentRetriever is ready to handle queries!")
