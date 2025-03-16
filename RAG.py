@@ -1,59 +1,94 @@
-
+!pip install --upgrade langchain
 import os
 import pickle
+from datetime import datetime
 from PyPDF2 import PdfReader
-from sentence_transformers import SentenceTransformer
-import faiss
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain.schema import Document
 
-# Step 1: Read and process PDF files
-def process_pdfs(pdf_directory):
-    documents = []
-    for filename in os.listdir(pdf_directory):
-        if filename.endswith(".pdf"):
-            pdf_path = os.path.join(pdf_directory, filename)
-            reader = PdfReader(pdf_path)
-            text = ""
+# Step 1: Upload and process text (PDF) files
+def process_txt_files(txt_directory, metadata_path, chunk_size=500, chunk_overlap=50):
+    # Load list of already processed files
+    if os.path.exists(metadata_path):
+        with open(metadata_path, "rb") as f:
+            processed_metadata = pickle.load(f)
+    else:
+        processed_metadata = {}
+
+    # Initialize text splitter
+    text_splitter = RecursiveCharacterTextSplitter(chunk_size=chunk_size, chunk_overlap=chunk_overlap)
+    
+    txt_documents = []
+    for txt_file in os.listdir(txt_directory):
+        if txt_file.endswith(".pdf") and txt_file not in processed_metadata:
+            file_path = os.path.join(txt_directory, txt_file)
+            reader = PdfReader(file_path)
+            txt_content = ""
             for page in reader.pages:
-                text += page.extract_text()
-            documents.append(text)
-    return documents
+                txt_content += page.extract_text()
+            
+            # Split text into smaller chunks
+            txt_chunks = text_splitter.split_text(txt_content)
+            
+            # Add metadata (identifier ID, timestamp, file name)
+            current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            identifier_id = f"{txt_file}_{current_time}"
+            documents = [
+                Document(page_content=chunk, metadata={
+                    "id": identifier_id,
+                    "uploaded_at": current_time,
+                    "source": txt_file
+                })
+                for chunk in txt_chunks
+            ]
+            txt_documents.extend(documents)
+            
+            # Mark file as processed
+            processed_metadata[txt_file] = {
+                "uploaded_at": current_time,
+                "id": identifier_id
+            }
 
-# Step 2: Create vector database from processed content
-def create_vector_store(documents, index_path, model_name="all-MiniLM-L6-v2"):
-    model = SentenceTransformer(model_name)
-    embeddings = model.encode(documents, show_progress_bar=True)
-    
-    # Create FAISS index
-    dimension = embeddings.shape[1]
-    index = faiss.IndexFlatL2(dimension)
-    index.add(embeddings)
-    
-    # Save index and documents
-    faiss.write_index(index, index_path)
-    with open("documents.pkl", "wb") as f:
-        pickle.dump(documents, f)
+    # Save metadata to file
+    with open(metadata_path, "wb") as f:
+        pickle.dump(processed_metadata, f)
 
-# Step 3: Load vector store and use it
-def load_vector_store(index_path):
-    index = faiss.read_index(index_path)
-    with open("documents.pkl", "rb") as f:
-        documents = pickle.load(f)
-    return index, documents
+    return txt_documents
+
+# Step 2: Use .as_retriever() with stored documents
+def store_and_retrieve(txt_documents, retriever_path):
+    from langchain.vectorstores import FAISS
+    from langchain.embeddings import HuggingFaceEmbeddings
+    
+    # Initialize embeddings
+    embeddings = HuggingFaceEmbeddings()
+    
+    # Save documents into FAISS index
+    if os.path.exists(retriever_path):
+        retriever = FAISS.load_local(retriever_path, embeddings)
+    else:
+        retriever = FAISS.from_documents(txt_documents, embeddings)
+    
+    retriever.save_local(retriever_path)
+    return retriever.as_retriever()
 
 # Main program
 def main():
-    pdf_directory = "/content/"  # Change to your folder with PDFs
-    index_path = "vector_store.index"
+    txt_directory = "/content/daneshkar/"  # Change this to your PDF folder path
+    metadata_path = "processed_files_metadata.pkl"
+    retriever_path = "retriever_index"
     
-    if not os.path.exists(index_path):
-        print("Processing PDFs and creating vector store...")
-        documents = process_pdfs(pdf_directory)
-        create_vector_store(documents, index_path)
-    else:
-        print("Loading existing vector store...")
-        index, documents = load_vector_store(index_path)
+    print("Processing new PDF files...")
+    txt_documents = process_txt_files(txt_directory, metadata_path)
 
-    print("Vector store is ready for use!")
+    if txt_documents:
+        print(f"Processed {len(txt_documents)} chunks from new documents.")
+        
+        print("Storing documents and initializing retriever...")
+        retriever = store_and_retrieve(txt_documents, retriever_path)
+        print("Retriever is ready to handle queries!")
+    else:
+        print("No new files to process.")
 
 if __name__ == "__main__":
     main()
